@@ -1,0 +1,55 @@
+title: SSH Brute Force - Multiple Failed Logins from Same Source IP
+id: 7e1b4c2a-9d3f-4a6e-8b2c-1f5e6a7d8c9b
+status: experimental
+description: |
+  Detects a burst of 6 or more failed SSH authentication attempts from the
+  same source IP within a 20-second window. Calibrated against SSH's default
+  behavior of dropping the connection after 3 attempts: a legitimate user
+  reconnecting manually would need well over 20 seconds to accumulate 6
+  failures, while automated tools (e.g. Hydra) generate them in seconds.
+references:
+  - internal://soc-lab/case-01-bruteforce-exfiltration
+author: alegregonzasebaa
+date: 2026-09-25
+modified: 2026-09-25
+tags:
+  - attack.credential_access
+  - attack.t1110.001
+logsource:
+  product: linux
+  service: auth
+  category: authentication
+detection:
+  selection:
+    logsource: sshd
+    action: failed_login
+  timeframe: 20s
+  condition: selection | count(source_ip) by source_ip >= 6
+falsepositives:
+  - Legitimate user repeatedly mistyping their password in rapid succession
+  - Automated health-check or monitoring scripts misconfigured with wrong credentials
+level: high
+fields:
+  - source_ip
+  - destination_ip
+  - user
+  - port
+---
+# Native mapping notes (Wazuh)
+#
+# This rule mirrors the following Wazuh custom rule (id 100010), used in
+# soc-lab Case 01:
+#
+#   <rule id="100010" level="10" frequency="6" timeframe="20" ignore="180">
+#     <if_matched_sid>5760</if_matched_sid>
+#     <same_source_ip />
+#     <description>sshd: Possible brute force attack. 6 or more failed
+#       logins from the same source IP within 20 seconds.</description>
+#     <mitre><id>T1110.001</id></mitre>
+#   </rule>
+#
+# To convert this Sigma rule to a Wazuh rule with sigma-cli / pySigma once a
+# Wazuh backend is available, or to re-derive the Wazuh XML manually as done
+# here: keep the "same_source_ip" grouping, the 20s timeframe, and the 6-hit
+# frequency threshold — those three fields are what make the detection fire
+# faster than Wazuh's own native brute-force rule (5763: 8 failures/120s).

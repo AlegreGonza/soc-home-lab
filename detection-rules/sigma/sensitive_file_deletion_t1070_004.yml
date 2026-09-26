@@ -1,0 +1,45 @@
+title: Sensitive File Deleted in Monitored Backup Directory
+id: 4f9a2d6e-3c1b-4e8a-9d5f-2b6c7e8f9a0b
+status: experimental
+description: |
+  Detects deletion of a file inside a File Integrity Monitoring (FIM)
+  watched directory known to hold sensitive material (e.g. credential
+  backups). Intended as an independent detection layer that still fires
+  even when the deleting command itself leaves no trace in authentication
+  or command-audit logs (e.g. a non-privileged `rm` run without sudo).
+references:
+  - internal://soc-lab/case-01-bruteforce-exfiltration
+author: alegregonzasebaa
+date: 2026-09-25
+modified: 2026-09-25
+tags:
+  - attack.defense_evasion
+  - attack.t1070.004
+logsource:
+  product: linux
+  category: file_event
+  definition: 'Requires File Integrity Monitoring (e.g. Wazuh syscheck) in realtime mode on the target directory'
+detection:
+  selection:
+    event.action: deleted
+    file.path|contains:
+      - '/.backup_sistema/'
+  condition: selection
+falsepositives:
+  - Legitimate cleanup or rotation of backup files by an authorized administrator
+  - Scheduled retention jobs pruning old backups
+level: medium
+fields:
+  - file.path
+  - user
+  - host
+---
+# Native mapping notes (Wazuh)
+#
+# Maps to Wazuh FIM rule id 553 ("File deleted"), fired via syscheck in
+# realtime mode on /home/victima/.backup_sistema. In Case 01 this rule
+# caught the actual, successful `rm db_passwords.txt` that a sudo-based
+# command audit rule (5402) could NOT see, because that deletion was run
+# without sudo. Pair this rule with the brute-force rule above rather than
+# relying on either one alone — FIM is the safety net for actions that
+# bypass command-level auditing entirely.
