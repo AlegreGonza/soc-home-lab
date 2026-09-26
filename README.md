@@ -60,7 +60,7 @@ Each attack scenario is executed live against a real machine, detected in real t
 - **File Integrity Monitoring (FIM)**: realtime watch on sensitive directories, independent of command-level auditing.
 - **Custom detection rule**: a purpose-built Wazuh rule for fast SSH brute-force detection (see `detection-rules/`), validated with `wazuh-logtest`.
 - **SOAR automation**: a Wazuh → TheHive integration that auto-promotes high-confidence alerts straight to a Case, skipping manual triage.
-- **SIEM-agnostic detection logic**: new detections are drafted first in [Sigma](https://github.com/SigmaHQ/sigma) format, then converted to native Wazuh syntax (see `detection-rules/sigma/`).
+- **SIEM-agnostic detection logic**: new detections are drafted first in [Sigma](https://github.com/SigmaHQ/sigma) format, then converted to native Wazuh syntax. Each case keeps its own `detection-rules/` folder alongside its report.
 
 ## Documented blind spots
 
@@ -76,17 +76,18 @@ These are tracked as future work rather than hidden — see each case's own repo
 soc-lab/
 ├── README.md                          ← you are here
 ├── architecture/                      ← topology diagrams
-├── detection-rules/
-│   ├── wazuh/                         ← native Wazuh rules (XML)
-│   └── sigma/                         ← SIEM-agnostic rules (Sigma YAML)
 ├── incident-reports/
 │   └── case-01-bruteforce-exfiltration/
 │       ├── README.md
-│       └── screenshots/
+│       ├── screenshots/
+│       └── detection-rules/
+│           └── sigma/                 ← SIEM-agnostic rules (Sigma YAML) for this case
 ├── playbooks/                         ← SANS PICERL response playbooks, one per case
 ├── use-cases/                         ← short case definitions/objectives
 └── notes/                             ← lessons learned, infra troubleshooting logs
 ```
+
+Detection rules live next to the incident they belong to, inside each case's own `detection-rules/` folder, rather than in one shared top-level folder — keeps every case self-contained.
 
 ## Roadmap
 

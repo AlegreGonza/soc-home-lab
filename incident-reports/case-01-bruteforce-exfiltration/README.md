@@ -206,7 +206,7 @@ Rationale: there was confirmed exfiltration of a file containing (simulated) dat
 
 **SOAR automation (Wazuh → TheHive integration):** when `rule.id: 100010` fires, the integration script (`custom-thehive`) automatically creates a **Case** in TheHive (not just an Alert) with High severity and tags `T1110.001, auto-promoted, ssh, bruteforce` — skipping manual triage for high-confidence detections. *Known limitation*: no deduplication — every rule trigger creates a new Case even if it's the same ongoing attack (pending improvement).
 
-**SIEM-agnostic version**: this rule has been converted to **Sigma** format for portability — see [`detection-rules/sigma/`](../../detection-rules/sigma/).
+**SIEM-agnostic version**: this rule has been converted to **Sigma** format for portability — see [`detection-rules/sigma/`](detection-rules/sigma/).
 
 ## Final Incident Conclusion
 
