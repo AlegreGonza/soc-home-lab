@@ -17,4 +17,4 @@ SIEM-agnostic detection logic for this lab, written in [Sigma](https://github.co
 | `ssh_bruteforce_t1110_001.yml` | SSH brute force (6+ failed logins/20s, same source IP) | T1110.001 | Custom rule `100010` |
 | `sensitive_file_deletion_t1070_004.yml` | Deletion of a file inside a monitored/sensitive directory (FIM) | T1070.004 | Native rule `553` (syscheck) |
 
-Both rules are documented in detail, with real evidence, in [`incident-reports/case-01-bruteforce-exfiltration/`](../../incident-reports/case-01-bruteforce-exfiltration/).
+Both rules are documented in detail, with real evidence, in [the Case 01 incident report](../../README.md).
