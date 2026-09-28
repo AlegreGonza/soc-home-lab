@@ -170,11 +170,14 @@ Severity is classified as **High**: there was confirmed exfiltration of sensitiv
 | Phase | Technique | ID | Tactic | Evidence | Confidence |
 |---|---|---|---|---|---|
 | Reconnaissance | Active Scanning | T1595 | Reconnaissance | Suricata rule 86601 | High |
-| Initial Access | Brute Force: Password Guessing | T1110.001 | Credential Access | Wazuh rule 2502 / 100010 | High |
+| Credential Access | Brute Force: Password Guessing | T1110.001 | Credential Access | Wazuh rule 2502 / 100010 | High |
+| Initial Access | Valid Accounts: Local Accounts | T1078.003 | Initial Access | Wazuh rule 5715 (sshd authentication success from the attacker IP, right after the brute force) | High |
 | Discovery | File and Directory Discovery | T1083 | Discovery | Wazuh rule 5402 (sudo) | Medium (only visible with sudo) |
 | Collection | Data from Local System | T1005 | Collection | No direct evidence; inferred from context | Medium |
-| Exfiltration | Exfiltration Over Alternative Protocol (SSH/SCP) | T1048 / T1041 | Exfiltration | No direct evidence (blind spot); inferred from session correlation | Low-Medium |
+| Exfiltration | Exfiltration Over Alternative Protocol: Asymmetric Encrypted Non-C2 Protocol (SCP over SSH) | T1048.002 | Exfiltration | No direct evidence (blind spot); inferred from session correlation | Low-Medium |
 | Anti-forensics | Indicator Removal: File Deletion | T1070.004 | Defense Evasion | Wazuh rule 553 (FIM) | High |
+
+*Mapping notes:* the brute force itself is **Credential Access** (T1110.001); the moment the guessed password is used to log in is a separate technique, **Valid Accounts** (T1078.003), which is the actual Initial Access. Exfiltration is mapped to T1048.002 rather than T1041 because no C2 channel was involved — the file was pulled directly over SCP, a separate encrypted protocol.
 
 ## Incident Severity
 

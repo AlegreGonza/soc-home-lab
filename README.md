@@ -8,6 +8,15 @@ This repo is a **work in progress**. It grows one use case at a time — each ne
 
 ---
 
+## Incident cases
+
+| # | Case | MITRE ATT&CK | Status |
+|---|---|---|---|
+| 01 | [SSH Brute Force + Data Exfiltration](incident-reports/case-01-bruteforce-exfiltration/) | T1595 · T1110.001 · T1078.003 · T1083 · T1005 · T1048.002 · T1070.004 | ✅ Completed |
+| 02 | Sudo abuse / privilege escalation | T1548.003 | 🔜 Planned |
+
+---
+
 ## Why this project exists
 
 The goal is a first job as a **SOC Tier 1 Analyst**. Instead of collecting certificates first and building later, this lab flips that order: every skill (log correlation, detection engineering, incident documentation, SOAR automation) is learned by solving a real problem that came up while building or attacking this environment — including the infrastructure failures along the way, which turned into some of the best material here (see the troubleshooting notes inside each case).
@@ -58,7 +67,7 @@ Each attack scenario is executed live against a real machine, detected in real t
 
 - **Network + host detection**: Suricata (NIDS) and Wazuh (HIDS/SIEM), correlating alerts from both layers.
 - **File Integrity Monitoring (FIM)**: realtime watch on sensitive directories, independent of command-level auditing.
-- **Custom detection rule**: a purpose-built Wazuh rule for fast SSH brute-force detection (see `detection-rules/`), validated with `wazuh-logtest`.
+- **Custom detection rule**: a purpose-built Wazuh rule for fast SSH brute-force detection (see [Case 01 detection rules](incident-reports/case-01-bruteforce-exfiltration/#detection-rules)), validated with `wazuh-logtest`.
 - **SOAR automation**: a Wazuh → TheHive integration that auto-promotes high-confidence alerts straight to a Case, skipping manual triage.
 - **SIEM-agnostic detection logic**: new detections are drafted first in [Sigma](https://github.com/SigmaHQ/sigma) format, then converted to native Wazuh syntax. Each case keeps its own `detection-rules/` folder alongside its report.
 
@@ -73,17 +82,18 @@ These are tracked as future work rather than hidden — see each case's own repo
 ## Repository structure
 
 ```
-soc-lab/
+soc-home-lab/
 ├── README.md                          ← you are here
-├── architecture/                      ← topology diagrams
 ├── incident-reports/
 │   └── case-01-bruteforce-exfiltration/
 │       ├── README.md
 │       ├── screenshots/
 │       └── detection-rules/
 │           └── sigma/                 ← SIEM-agnostic rules (Sigma YAML) for this case
+│
+│   (planned — added as the lab grows)
+├── architecture/                      ← topology diagrams
 ├── playbooks/                         ← SANS PICERL response playbooks, one per case
-├── use-cases/                         ← short case definitions/objectives
 └── notes/                             ← lessons learned, infra troubleshooting logs
 ```
 
