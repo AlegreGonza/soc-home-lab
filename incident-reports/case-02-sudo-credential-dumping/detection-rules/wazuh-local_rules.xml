@@ -15,7 +15,7 @@
   <if_sid>5402</if_sid>
   <match>/etc/shadow|/etc/passwd</match>
   <description>Credential dumping via sudo</description>
-  <mitre><id>T1003.008</id></mitre>
+  <mitre><id>T1548.003</id><id>T1003.008</id></mitre>
 </rule>
 
 <group name="local,credential_dump_chain,">
@@ -24,6 +24,6 @@
   <if_matched_group>recon_sudo</if_matched_group>
   <match>/etc/shadow|/etc/passwd</match>
   <description>Full attack chain: recon followed by credential dumping</description>
-  <mitre><id>T1069.001</id><id>T1003.008</id></mitre>
+  <mitre><id>T1069.001</id><id>T1548.003</id><id>T1003.008</id></mitre>
 </rule>
 </group>

@@ -22,6 +22,8 @@ correlation:
 level: critical
 tags:
   - attack.discovery
+  - attack.privilege_escalation
   - attack.credential_access
   - attack.t1069.001
+  - attack.t1548.003
   - attack.t1003.008

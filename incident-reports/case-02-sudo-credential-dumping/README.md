@@ -135,9 +135,12 @@ Both rules were confirmed firing in sequence against real `sudo -l` → `sudo ca
 
 | Phase | Technique | ID | Tactic | Evidence | Confidence |
 |---|---|---|---|---|---|
-| Privilege discovery | Permission Groups Discovery | T1069.001 | Discovery | Rule `100031` (`sudo -l`) | High |
-| Credential access | OS Credential Dumping | T1003.008 | Credential Access | Rule `100030` (`/etc/shadow` read) | High |
-| Composite chain | Recon → Credential Dumping | T1069.001 → T1003.008 | Discovery → Credential Access | Rule `100033` (correlation) | High |
+| Privilege discovery | Permission Groups Discovery: Local Groups | T1069.001 | Discovery | Rule `100031` (`sudo -l`) | High |
+| Privilege escalation | Abuse Elevation Control Mechanism: Sudo and Admin | T1548.003 | Privilege Escalation | Overly broad `sudo` grant used to read root-owned files as a non-root user | High |
+| Credential access | OS Credential Dumping: /etc/Password and /etc/shadow | T1003.008 | Credential Access | Rule `100030` (`/etc/shadow` read) | High |
+| Composite chain | Recon → Privilege Escalation → Credential Dumping | T1069.001 → T1548.003 → T1003.008 | Discovery → Privilege Escalation → Credential Access | Rule `100033` (correlation) | High |
+
+Mapping notes: T1548.003 is its own row because the broad `sudo` grant is itself the escalation mechanism — reading `/etc/shadow` as a low-privilege user only works because `sudo` hands over root privileges with no file-scope restriction. This is the same underlying abuse-of-sudo category documented more narrowly in Case 03 (a single-binary grant exploited via GTFOBins). No dedicated rule isolates this step alone; it's evidenced jointly by rules `100030`/`100033` and the known sudoers configuration.
 
 ## Incident Severity
 
@@ -168,7 +171,7 @@ Rationale: the dumped file exposes every local account's password hash for offli
   <if_sid>5402</if_sid>
   <match>/etc/shadow|/etc/passwd</match>
   <description>Credential dumping via sudo</description>
-  <mitre><id>T1003.008</id></mitre>
+  <mitre><id>T1548.003</id><id>T1003.008</id></mitre>
 </rule>
 
 <group name="local,credential_dump_chain,">
@@ -177,7 +180,7 @@ Rationale: the dumped file exposes every local account's password hash for offli
   <if_matched_group>recon_sudo</if_matched_group>
   <match>/etc/shadow|/etc/passwd</match>
   <description>Full attack chain: recon followed by credential dumping</description>
-  <mitre><id>T1069.001</id><id>T1003.008</id></mitre>
+  <mitre><id>T1069.001</id><id>T1548.003</id><id>T1003.008</id></mitre>
 </rule>
 </group>
 ```
