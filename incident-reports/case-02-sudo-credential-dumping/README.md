@@ -1,105 +1,105 @@
-# Caso 02: Abuso de Sudo — Dumping de Credenciales por Permiso Mal Configurado
+# Case 02: Sudo Abuse — Credential Dumping via Misconfigured Grant
 
 ![Status](https://img.shields.io/badge/status-completed-brightgreen) ![Focus](https://img.shields.io/badge/focus-SOC%20Operations-blue) ![Platform](https://img.shields.io/badge/platform-Linux-orange) ![Telemetry](https://img.shields.io/badge/telemetry-Wazuh%20%2B%20auditd-lightgrey) ![Framework](https://img.shields.io/badge/framework-MITRE%20ATT%26CK-red)
 
 ---
 
-## Resumen rápido del caso
+## Case at a Glance
 
-| Campo | Detalle |
+| Field | Detail |
 |---|---|
-| **Host víctima** | `ubuntu-victima` (192.168.1.46), Ubuntu 26.04 LTS, kernel 7.0.0-31-generic |
-| **Usuario comprometido** | `victima` (ya contaba con acceso válido, no-root — continuación del acceso logrado en el Caso 01) |
-| **Severidad** | Crítica |
-| **Condición inicial** | Usuario de bajo privilegio con un permiso de `sudo` lo suficientemente amplio como para leer cualquier archivo como root |
-| **Fuentes de telemetría** | Wazuh (HIDS/SIEM) + `auditd` + `audisp-syslog` (pipeline a medida construido para este caso) |
-| **Comportamientos clave** | Enumeración de nivel de privilegios, dumping de credenciales del sistema operativo |
-| **Detecciones generadas** | 3 reglas custom de Wazuh (`100030`, `100031`, `100033`) |
-| **Caso relacionado** | Caso 04 (escalada de privilegios a root — mismo punto de apoyo, técnica distinta) |
+| **Victim host** | `ubuntu-victima` (192.168.1.46), Ubuntu 26.04 LTS, kernel 7.0.0-31-generic |
+| **Compromised user** | `victima` (already holding valid, non-root access — continuation of Case 01's foothold) |
+| **Severity** | Critical |
+| **Initial condition** | Low-privilege user with a `sudo` grant broad enough to read any file as root |
+| **Telemetry sources** | Wazuh (HIDS/SIEM) + `auditd` + `audisp-syslog` (custom pipeline built for this case) |
+| **Key behaviors** | Privilege-level enumeration, OS credential dumping |
+| **Detections generated** | 3 custom Wazuh rules (`100030`, `100031`, `100033`) |
+| **Related case** | Case 03 (privilege escalation to root — same foothold, different technique) |
 
 ---
 
-## Flujo del ataque
+## Attack Flow
 
 ```
-Enumeración de privilegios     Dumping de credenciales
+Privilege Enumeration          Credential Dumping
 (sudo -l)                      (sudo cat /etc/shadow)
-     ↓ auditd → audisp-syslog         ↓ decoder de sudo (5402)
-   regla 100031                     regla 100030
+     ↓ auditd → audisp-syslog         ↓ sudo decoder (5402)
+   rule 100031                      rule 100030
      ↓                                ↓
-             CORRELACIÓN: recon → dump dentro de 5 min
-                      regla 100033 (crítica)
+                 CORRELATION: recon → dump within 5 min
+                          rule 100033 (critical)
 ```
 
 ---
 
-## Contenido
+## Contents
 
-1. [Visión general](#visión-general)
-2. [Escenario](#escenario)
-3. [Objetivos](#objetivos)
-4. [Resumen ejecutivo](#resumen-ejecutivo)
-5. [Fuentes de datos](#fuentes-de-datos)
-6. [Cronología de eventos](#cronología-de-eventos)
-7. [Investigación](#investigación)
-8. [Indicadores de compromiso (IOCs)](#indicadores-de-compromiso-iocs)
-9. [Indicadores de ataque (IOAs)](#indicadores-de-ataque-ioas)
-10. [Mapeo MITRE ATT&CK](#mapeo-mitre-attck)
-11. [Severidad del incidente](#severidad-del-incidente)
-12. [Acciones de respuesta a incidentes](#acciones-de-respuesta-a-incidentes)
-13. [Reglas de detección](#reglas-de-detección)
-14. [Conclusión final del incidente](#conclusión-final-del-incidente)
-15. [Habilidades demostradas](#habilidades-demostradas)
+1. [Overview](#overview)
+2. [Scenario](#scenario)
+3. [Objectives](#objectives)
+4. [Executive Summary](#executive-summary)
+5. [Data Sources](#data-sources)
+6. [Raw Event Timeline](#raw-event-timeline)
+7. [Investigation](#investigation)
+8. [Indicators of Compromise (IOCs)](#indicators-of-compromise-iocs)
+9. [Indicators of Attack (IOAs)](#indicators-of-attack-ioas)
+10. [MITRE ATT&CK Mapping](#mitre-attck-mapping)
+11. [Incident Severity](#incident-severity)
+12. [Incident Response Actions](#incident-response-actions)
+13. [Detection Rules](#detection-rules)
+14. [Final Incident Conclusion](#final-incident-conclusion)
+15. [Skills Demonstrated](#skills-demonstrated)
 16. [Disclaimer](#disclaimer)
 
 ---
 
-## Visión general
+## Overview
 
-Este caso documenta la primera de dos técnicas de escalada de privilegios post-acceso ejecutadas contra un host donde el atacante ya contaba con acceso válido de bajo privilegio (el mismo punto de apoyo logrado en el Caso 01). Se centra en una mala configuración extremadamente común: un permiso de `sudo` lo suficientemente amplio como para dejar a un usuario no-root leer cualquier archivo del sistema, incluyendo `/etc/shadow`. (El Caso 04 documenta una segunda técnica, independiente, de compromiso total de root vía GTFOBins, sobre el mismo host.)
+This case documents the first of two post-access privilege-escalation techniques executed against a host where the attacker already held valid, low-privilege access (the same foothold established in Case 01). It focuses on a specific, extremely common misconfiguration: a `sudo` grant broad enough to let a non-root user read any file on the system — including `/etc/shadow`. (Case 03 documents a second, independent technique — full root compromise via GTFOBins — against the same host.)
 
-El uso de `sudo` suele ser o bien totalmente confiado, o bien registrado solo a un nivel genérico y de baja severidad en muchos stacks de SOC. Este caso construye desde cero la capa de detección necesaria para capturar este abuso específico, cerrando ese punto ciego.
+`sudo` usage is often either fully trusted or logged only at a generic, low-severity level in many SOC stacks. This case builds the detection layer needed to catch this specific misuse from scratch, closing that blind spot.
 
-## Escenario
+## Scenario
 
-- **Host víctima**: `ubuntu-victima`, Ubuntu 26.04 LTS, kernel `7.0.0-31-generic`, IP `192.168.1.46`.
-- **Manager de Wazuh**: contenedor Docker (`single-node-wazuh.manager-1`, deploy `wazuh-docker/single-node`) en una PC Windows separada.
-- **Usuario comprometido**: `victima`, con un permiso de `sudo` lo suficientemente amplio como para leer cualquier archivo como root.
-- **Condición inicial**: acceso por shell ya obtenido (continuación del punto de apoyo del Caso 01).
-- **Detalle relevante del entorno**: el `sudo` de este build es `sudo-rs` (la reimplementación en Rust, versión 0.2.13), no el `sudo` clásico en C — una base de código y un esquema de versionado completamente distintos, con consecuencias directas sobre cómo hay que auditarlo (ver Investigación).
+- **Victim host**: `ubuntu-victima`, Ubuntu 26.04 LTS, kernel `7.0.0-31-generic`, IP `192.168.1.46`.
+- **Wazuh manager**: Docker container (`single-node-wazuh.manager-1`, `wazuh-docker/single-node` deploy) on a separate Windows PC.
+- **Compromised user**: `victima`, holding a `sudo` grant broad enough to read any file as root.
+- **Starting condition**: valid shell access already obtained (continuation of the foothold from Case 01).
+- **Notable environment detail**: `sudo` on this build is `sudo-rs` (the Rust reimplementation, version 0.2.13), not classic C sudo — a completely different codebase and versioning scheme, with direct consequences for how it needs to be audited (see Investigation).
 
-## Objetivos
+## Objectives
 
-1. Medir cuánto de una secuencia de dumping de credenciales vía `sudo` captura el pipeline estándar de Wazuh/`auth.log`, y cuánto requiere ingeniería a medida.
-2. Construir visibilidad a nivel de host sobre los argumentos de los comandos `sudo`, independiente del logging (insuficiente) propio de `sudo-rs`.
-3. Correlacionar el patrón de dos pasos —reconocimiento de privilegios, seguido de acceso a credenciales— en una sola alerta de alta confianza.
+1. Measure how much of a `sudo`-based credential-dumping sequence the stock Wazuh/`auth.log` pipeline captures, and how much requires custom engineering.
+2. Build host-level visibility into `sudo` command arguments independent of `sudo-rs`'s own (insufficient) logging.
+3. Correlate the two-step pattern — privilege recon, then credential access — into a single high-confidence alert.
 
-## Resumen ejecutivo
+## Executive Summary
 
-El atacante primero enumeró sus propios privilegios de `sudo` (`sudo -l`), y luego usó ese mismo acceso para volcar `/etc/shadow`. Ninguno de los dos pasos era confiablemente visible a través del pipeline de logging estándar, así que se construyó un pipeline a medida `auditd → audisp-syslog → Wazuh` específicamente para capturar los argumentos completos de línea de comandos de las invocaciones de `sudo`. Luego se construyó una regla de correlación para escalar el patrón de dos pasos —recon seguido de dumping dentro de 5 minutos— de dos eventos de severidad baja/media a una sola alerta crítica, ya que ningún evento aislado es un indicador confiable (los administradores ejecutan `sudo -l` y `sudo cat` de forma rutinaria), pero la secuencia específica sí lo es.
+The attacker first enumerated their own `sudo` privileges (`sudo -l`), then used that same access to dump `/etc/shadow`. Neither step was reliably visible through the stock logging pipeline, so a custom `auditd → audisp-syslog → Wazuh` pipeline was built specifically to capture full command-line arguments for `sudo` invocations. A correlation rule was then built to escalate the two-step pattern — recon followed by dumping within 5 minutes — from two low/medium-severity events into a single critical alert, since neither event alone is a reliable indicator (admins run `sudo -l` and `sudo cat` routinely) but the specific sequence is.
 
-La severidad se clasifica como **Crítica**: el archivo volcado expone el hash de contraseña de cada cuenta local para cracking offline, a partir de una única mala configuración específica de `sudo`.
+Severity is classified as **Critical**: the dumped file exposes every local account's password hash for offline cracking, from a single, specific `sudo` misconfiguration.
 
-## Fuentes de datos
+## Data Sources
 
-| Fuente | Qué aporta |
+| Source | What it provides |
 |---|---|
-| `auditd` (watch custom de execve sobre `sudo`, persistido en `/etc/audit/rules.d/`) | Visibilidad completa de línea de comandos para invocaciones de `sudo`, independiente del logging propio de `sudo-rs` |
-| `audisp-syslog` | Convierte los registros multilínea `EXECVE` de auditd en entradas syslog de una sola línea, que Wazuh ingiere vía su `localfile` de formato `syslog` ya existente |
-| Wazuh — decoder de sudo (regla `5402`) | Detección nativa genérica de "sudo exitoso a root" — genérica, baja severidad, insuficiente por sí sola |
-| Wazuh — reglas custom `100030`/`100031`/`100033` | Detección construida a medida para este caso, validada con `wazuh-logtest` y tráfico en vivo |
+| `auditd` (custom execve watch on `sudo`, persisted in `/etc/audit/rules.d/`) | Full command-line visibility for `sudo` invocations, independent of `sudo-rs`'s own logging |
+| `audisp-syslog` | Converts multi-line `EXECVE` audit records into single-line syslog entries Wazuh ingests via its existing `syslog`-format `localfile` |
+| Wazuh — sudo decoder (rule `5402`) | Native "successful sudo to root" detection — generic, low severity, insufficient alone |
+| Wazuh — custom rules `100030`/`100031`/`100033` | Purpose-built detection for this case, validated with `wazuh-logtest` and live traffic |
 
-## Cronología de eventos
+## Raw Event Timeline
 
-| Evento | rule.id | Nivel |
+| Event | rule.id | Level |
 |---|---|---|
-| Recon: `sudo -l` (enumeración de privilegios) | `100031` | 3 |
-| `sudo cat /etc/shadow` (dumping de credenciales) | `100030` | 12 |
-| **Correlación**: recon → dump dentro de 300s | `100033` | 13 |
+| Recon: `sudo -l` (privilege enumeration) | `100031` | 3 |
+| `sudo cat /etc/shadow` (credential dump) | `100030` | 12 |
+| **Correlation**: recon → dump within 300s | `100033` | 13 |
 
-## Investigación
+## Investigation
 
-El logging propio de `sudo-rs` (`/var/log/auth.log`) resultó insuficiente para capturar de forma confiable los argumentos completos de línea de comandos necesarios para la correlación, así que se construyó un watch de execve de `auditd` a medida, persistido a través de reinicios:
+`sudo-rs`'s own logging (`/var/log/auth.log`) was insufficient to reliably capture full command-line arguments for correlation purposes, so a custom `auditd` execve watch was built and made persistent across reboots:
 
 ```bash
 echo '-a always,exit -F arch=b64 -S execve -F exe=/usr/lib/cargo/bin/sudo -k sudo_correct' \
@@ -107,53 +107,53 @@ echo '-a always,exit -F arch=b64 -S execve -F exe=/usr/lib/cargo/bin/sudo -k sud
 sudo augenrules --load
 ```
 
-Notar la ruta del ejecutable: `/usr/lib/cargo/bin/sudo`, no `/usr/bin/sudo`. Este build usa `sudo-rs` (la reimplementación en Rust de sudo, versión 0.2.13 — una base de código y esquema de versionado completamente distinto al `sudo` clásico en C 1.9.x), y auditar la ruta incorrecta produce silenciosamente cero eventos.
+Note the executable path: `/usr/lib/cargo/bin/sudo`, not `/usr/bin/sudo`. This build uses `sudo-rs` (the Rust reimplementation of sudo, version 0.2.13 — a completely different codebase and versioning scheme from classic C sudo 1.9.x), and auditing the wrong path silently produces zero events.
 
-`audisp-syslog` reenvía estos registros a `/var/log/syslog`, que Wazuh ya lee vía un `localfile` de formato `syslog` existente — no hizo falta registrar una fuente de log nueva.
+`audisp-syslog` forwards these records into `/var/log/syslog`, which Wazuh already reads via an existing `syslog`-format `localfile` — no new log source needed to be registered.
 
-Se resolvieron dos problemas de ingeniería construyendo este pipeline:
-- Wazuh rechaza `frequency="1"` (`Invalid frequency: 1. Must be higher than 1 and lower than 10000.`) — la regla de correlación (`100033`) se escribió con `frequency="2"`.
-- La regla `100031` (la regla de recon de `sudo -l`) falló en matchear silenciosamente durante un buen tiempo, pese a muchos intentos de regex. La causa raíz final: **los caracteres de comilla doble literales dentro de un bloque `<match type="pcre2">` provocan fallos de match silenciosos en este entorno**, incluso escapados (`\"`) o como entidad (`&quot;`). La solución fue evitar por completo los caracteres de comilla y matchear sobre substrings posicionales sin comillas (`EXECVE.*argc=2.*sudo.*-l`) — un patrón que el trabajo de detección posterior en este host (Caso 04) también sigue.
+Two engineering problems were resolved building this pipeline:
+- Wazuh rejects `frequency="1"` (`Invalid frequency: 1. Must be higher than 1 and lower than 10000.`) — the correlation rule (`100033`) was written with `frequency="2"`.
+- Rule `100031` (the `sudo -l` recon rule) silently failed to match for an extended period despite many regex attempts. The eventual root cause: **literal double-quote characters inside a `<match type="pcre2">` block cause silent non-matches in this environment**, even escaped (`\"`) or as an entity (`&quot;`). The fix was to avoid quote characters entirely and match on unquoted positional substrings (`EXECVE.*argc=2.*sudo.*-l`) — a pattern this host's later detection work (Case 03) also follows.
 
-Ambas reglas se confirmaron disparando en secuencia contra actividad real de `sudo -l` → `sudo cat /etc/shadow`, con la regla de correlación (`100033`) escalando el par a severidad crítica.
+Both rules were confirmed firing in sequence against real `sudo -l` → `sudo cat /etc/shadow` activity, with the correlation rule (`100033`) escalating the pair to critical severity.
 
-## Indicadores de compromiso (IOCs)
+## Indicators of Compromise (IOCs)
 
-| Tipo | Valor | Contexto |
+| Type | Value | Context |
 |---|---|---|
-| Usuario comprometido | `victima` | Cuenta de bajo privilegio con un permiso de `sudo` lo suficientemente amplio como para leer cualquier archivo |
-| Archivo de credenciales volcado | `/etc/shadow` | Leído vía `sudo cat` |
-| Implementación de `sudo` | `sudo-rs` 0.2.13 (`/usr/lib/cargo/bin/sudo`) | Reimplementación en Rust, no el sudo clásico |
+| Compromised user | `victima` | Low-privilege account with a `sudo` grant broad enough to read any file |
+| Dumped credential file | `/etc/shadow` | Read via `sudo cat` |
+| `sudo` implementation | `sudo-rs` 0.2.13 (`/usr/lib/cargo/bin/sudo`) | Rust reimplementation, not classic sudo |
 
-## Indicadores de ataque (IOAs)
+## Indicators of Attack (IOAs)
 
-| Comportamiento | Por qué es sospechoso |
+| Behavior | Why it's suspicious |
 |---|---|
-| `sudo -l` inmediatamente seguido de `sudo cat /etc/shadow` en cuestión de minutos | Enumeración de privilegios seguida directamente de acceso a credenciales — no es la secuencia típica del trabajo administrativo rutinario |
+| `sudo -l` immediately followed by `sudo cat /etc/shadow` within minutes | Privilege enumeration directly followed by credential access — not how routine admin work is typically sequenced |
 
-## Mapeo MITRE ATT&CK
+## MITRE ATT&CK Mapping
 
-| Fase | Técnica | ID | Táctica | Evidencia | Confianza |
+| Phase | Technique | ID | Tactic | Evidence | Confidence |
 |---|---|---|---|---|---|
-| Descubrimiento de privilegios | Permission Groups Discovery | T1069.001 | Discovery | Regla `100031` (`sudo -l`) | Alta |
-| Acceso a credenciales | OS Credential Dumping | T1003.008 | Credential Access | Regla `100030` (lectura de `/etc/shadow`) | Alta |
-| Cadena compuesta | Recon → Dumping de credenciales | T1069.001 → T1003.008 | Discovery → Credential Access | Regla `100033` (correlación) | Alta |
+| Privilege discovery | Permission Groups Discovery | T1069.001 | Discovery | Rule `100031` (`sudo -l`) | High |
+| Credential access | OS Credential Dumping | T1003.008 | Credential Access | Rule `100030` (`/etc/shadow` read) | High |
+| Composite chain | Recon → Credential Dumping | T1069.001 → T1003.008 | Discovery → Credential Access | Rule `100033` (correlation) | High |
 
-## Severidad del incidente
+## Incident Severity
 
-**Clasificación: Crítica.**
+**Classification: Critical.**
 
-Justificación: el archivo volcado expone el hash de contraseña de cada cuenta local para cracking offline — una única mala configuración de `sudo` con impacto de exposición de credenciales a nivel de todo el sistema, no limitado a la cuenta comprometida.
+Rationale: the dumped file exposes every local account's password hash for offline cracking — a single `sudo` misconfiguration with system-wide credential-exposure impact, not limited to the compromised account itself.
 
-## Acciones de respuesta a incidentes
+## Incident Response Actions
 
-1. **Contención**: contención reversible (revocar el permiso específico de `sudo`, forzar el cierre de la sesión) más escalamiento inmediato al equipo de IR — un evento de dumping de credenciales puede indicar que la cuenta en sí está totalmente comprometida y amerita investigación de causa raíz, no aislamiento total automático a nivel Tier 1.
-2. **Preservación de evidencia**: exportar los eventos `rule.id: 100030, 100031, 100033` y los registros crudos de `auditd`/`audisp-syslog` antes de la rotación de logs.
-3. **Erradicación**: auditar y ajustar el permiso de `sudoers` para `victima` — acotar el acceso de lectura de archivos de forma explícita en vez de otorgar permisos amplios de `sudo`.
-4. **Recuperación**: rotar las contraseñas de todas las cuentas locales — el dump de `/etc/shadow` debe tratarse como si cada hash estuviera ahora sujeto a cracking offline, sin importar la fortaleza individual de cada contraseña.
-5. **Post-incidente**: formalizar un proceso de revisión de `sudoers` para cualquier permiso lo suficientemente amplio como para leer archivos arbitrarios.
+1. **Containment**: reversible containment (revoke the specific `sudo` grant, force session termination) plus immediate escalation to the IR team — a credential-dumping event can indicate the account itself is fully compromised and warrants root-cause investigation, not automatic full isolation at Tier 1.
+2. **Evidence preservation**: export `rule.id: 100030, 100031, 100033` events and the raw `auditd`/`audisp-syslog` records before log rotation.
+3. **Eradication**: audit and tighten the `sudoers` grant for `victima` — scope file-read access explicitly rather than granting broad `sudo` rights.
+4. **Recovery**: rotate all local account passwords — the `/etc/shadow` dump must be treated as if every hash is now subject to offline cracking, regardless of individual password strength.
+5. **Post-incident**: formalize a `sudoers` review process for any grant broad enough to read arbitrary files.
 
-## Reglas de detección
+## Detection Rules
 
 ```xml
 <group name="local,recon_sudo,">
@@ -181,22 +181,22 @@ Justificación: el archivo volcado expone el hash de contraseña de cada cuenta 
 </rule>
 </group>
 ```
-*Validado* con `wazuh-logtest` y tráfico en vivo: una secuencia real `sudo -l` → `sudo cat /etc/shadow` disparó `100031`, luego `100030`, luego `100033`, en orden.
+*Validated* with `wazuh-logtest` and live traffic: a real `sudo -l` → `sudo cat /etc/shadow` sequence fired `100031` then `100030` then `100033` in order.
 
-**Versión agnóstica de SIEM**: convertida a formato **Sigma** — ver [`detection-rules/sigma/`](detection-rules/sigma/).
+**SIEM-agnostic version**: converted to **Sigma** format — see [`detection-rules/sigma/`](detection-rules/sigma/).
 
-## Conclusión final del incidente
+## Final Incident Conclusion
 
-Este caso demuestra cómo una mala configuración de `sudo` común y fácil de pasar por alto (un permiso de lectura de archivos más amplio de lo pretendido) habilita el dumping completo de credenciales, y cómo cerrar el punto ciego de visibilidad resultante requirió construir un pipeline a medida basado en `auditd` en vez de confiar en el logging propio de `sudo`. La regla de correlación construida acá —escalando dos eventos individualmente ambiguos a una sola alerta de alta confianza en base a secuencia y tiempo— es el mismo patrón de diseño reutilizado y extendido en el Caso 04.
+This case demonstrates how a common, easy-to-overlook `sudo` misconfiguration (a file-read grant broader than intended) enables full credential dumping, and how closing the resulting visibility gap required building a dedicated `auditd`-based pipeline rather than relying on `sudo`'s own logging. The correlation rule built here — escalating two individually-ambiguous events into one high-confidence alert based on sequence and timing — is the same design pattern reused and extended in Case 03.
 
-## Habilidades demostradas
+## Skills Demonstrated
 
-- Construcción desde cero de un pipeline de visibilidad `auditd → audisp-syslog → Wazuh` a medida, incluyendo persistencia a través de reinicios
-- Diagnóstico de la causa raíz de un fallo de detección silencioso a nivel del motor (un bug de caracteres de comilla en `pcre2`) mediante pruebas sistemáticas y reproducibles
-- Diseño de una regla de correlación que convierte dos eventos de baja confianza en una sola alerta de alta confianza en base a secuencia y tiempo
-- Adaptación de la ingeniería de detección a una implementación no estándar de `sudo` (`sudo-rs`), verificando la ruta real del binario en vez de asumir los valores por defecto de GNU/Linux clásico
-- Mapeo de evidencia técnica a MITRE ATT&CK con niveles de confianza explícitos
+- Building a custom `auditd → audisp-syslog → Wazuh` visibility pipeline from scratch, including persistence across reboots
+- Root-causing a silent detection failure at the engine level (a `pcre2` quote-character bug) through systematic, reproducible testing
+- Designing a correlation rule that converts two low-confidence events into one high-confidence alert based on sequence and timing
+- Adapting detection engineering to a non-standard `sudo` implementation (`sudo-rs`) by verifying the real binary path rather than assuming GNU/classic Linux defaults
+- Mapping technical evidence to MITRE ATT&CK with explicit confidence levels
 
 ## Disclaimer
 
-Este es un incidente **real, ejecutado deliberadamente** en un home lab aislado, con fines educativos y de portafolio. Ninguna de las máquinas o datos involucrados pertenece a un tercero ni a un entorno de producción.
+This is a **real, deliberately executed** incident in an isolated home lab, for educational and portfolio purposes. None of the machines or data involved belong to a third party or a production environment.

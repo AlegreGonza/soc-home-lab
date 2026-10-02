@@ -1,6 +1,6 @@
 <!--
-  Caso 02: Abuso de Sudo — Dumping de Credenciales por Permiso Mal Configurado
-  Reglas custom de Wazuh (local_rules.xml), validadas con wazuh-logtest y tráfico en vivo.
+  Case 02: Sudo Abuse — Credential Dumping via Misconfigured Grant
+  Custom Wazuh rules (local_rules.xml), validated with wazuh-logtest and live traffic.
 -->
 
 <group name="local,recon_sudo,">
