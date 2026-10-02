@@ -14,6 +14,8 @@ date: 2026/10/02
 tags:
   - attack.privilege_escalation
   - attack.t1548.003
+  - attack.execution
+  - attack.t1059.004
 logsource:
   product: linux
   service: auditd

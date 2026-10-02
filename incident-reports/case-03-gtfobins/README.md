@@ -172,8 +172,11 @@ A negative control was then run — a routine `sudo ls /tmp` as a normal command
 
 | Phase | Technique | ID | Tactic | Evidence | Confidence |
 |---|---|---|---|---|---|
-| Privilege discovery | Permission Groups Discovery | T1069.001 | Discovery | Rule `100031` (`sudo -l`, reused from Case 02) | High |
+| Privilege discovery | Permission Groups Discovery: Local Groups | T1069.001 | Discovery | Rule `100031` (`sudo -l`, reused from Case 02) | High |
 | Privilege escalation | Abuse Elevation Control Mechanism: Sudo and Admin | T1548.003 | Privilege Escalation | Rule `100040` (GTFOBins shell escape via scoped sudo binary) | High |
+| Execution | Command and Scripting Interpreter: Unix Shell | T1059.004 | Execution | `/bin/sh` spawned as root via `find -exec`, confirmed by `whoami`/`id` output | High |
+
+Mapping notes: this chain adds a tactic Case 02 didn't need — Execution — because the escalation primitive itself works by spawning an interactive shell (`/bin/sh`), not by directly reading a file. T1548.003 covers the *authorization* abuse (the scoped sudo grant), while T1059.004 covers what the attacker does with the shell once it exists. Both are evidenced by the same rule `100040` firing, plus the terminal output confirming `uid=0`.
 
 ## Incident Severity
 
@@ -196,7 +199,7 @@ Rationale: this is full root compromise of the host from a `sudoers` entry that,
 <rule id="100040" level="13">
   <match type="pcre2">EXECVE.*sudo.*find.*exec.*bin.(sh|bash|dash)</match>
   <description>GTFOBins-style privilege escalation: sudo-permitted binary used to spawn a shell</description>
-  <mitre><id>T1548.003</id></mitre>
+  <mitre><id>T1548.003</id><id>T1059.004</id></mitre>
 </rule>
 </group>
 ```
