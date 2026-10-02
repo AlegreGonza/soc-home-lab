@@ -13,7 +13,10 @@ This repo is a **work in progress**. It grows one use case at a time — each ne
 | # | Case | MITRE ATT&CK | Status |
 |---|---|---|---|
 | 01 | [SSH Brute Force + Data Exfiltration](incident-reports/case-01-bruteforce-exfiltration/) | T1595 · T1110.001 · T1078.003 · T1083 · T1005 · T1048.002 · T1070.004 | ✅ Completed |
-| 02 | Sudo abuse / privilege escalation | T1548.003 | 🔜 Planned |
+| 03 | [Sudo Abuse — Credential Dumping](incident-reports/case-03-sudo-credential-dumping/) | T1069.001 · T1003.008 | ✅ Completed |
+| 04 | Privilege Escalation — CVE Research + GTFOBins | T1548.003 | 🔜 In progress (pending live validation of the exploit chain) |
+
+> Note: the port-scan scenario originally numbered "02" is already fully covered inside Case 01's own report (reconnaissance phase), so it doesn't get a separate entry.
 
 ---
 

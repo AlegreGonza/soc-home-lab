@@ -1,0 +1,27 @@
+title: Sudo Recon Followed by Credential Dumping (Full Chain)
+id: 7c1e2a3d-4f5b-4a6c-8d9e-1a2b3c4d5e03
+status: test
+description: >
+  Correlates privilege enumeration (sudo -l) followed by a credential
+  file read via sudo, from the same host, within a 5-minute window.
+  The composite pattern is high-confidence even though neither event
+  alone is.
+references:
+  - internal: soc-home-lab/case-03
+author: Gonzalo Alegre
+date: 2026-09-29
+correlation:
+  type: temporal_ordered
+  rules:
+    - 7c1e2a3d-4f5b-4a6c-8d9e-1a2b3c4d5e01  # 100031 - sudo -l
+    - 7c1e2a3d-4f5b-4a6c-8d9e-1a2b3c4d5e02  # 100030 - credential dump
+  group-by:
+    - ComputerName
+    - User
+  timespan: 5m
+level: critical
+tags:
+  - attack.discovery
+  - attack.credential_access
+  - attack.t1069.001
+  - attack.t1003.008
