@@ -1,4 +1,4 @@
-﻿# SOC Home Lab — Suricata + Wazuh + TheHive + Cortex
+# SOC Home Lab — Suricata + Wazuh + TheHive + Cortex
 
 ![Status](https://img.shields.io/badge/status-in%20progress-yellow) ![Focus](https://img.shields.io/badge/focus-SOC%20Tier%201-blue) ![Platform](https://img.shields.io/badge/platform-Linux%20%2F%20Docker-orange) ![Framework](https://img.shields.io/badge/framework-MITRE%20ATT%26CK-red)
 
@@ -65,6 +65,21 @@ The goal is a first job as a **SOC Tier 1 Analyst**. Instead of collecting certi
 | VM (`192.168.1.49`) | SOAR | TheHive (case management), Cortex (enrichment), Elasticsearch |
 
 Each attack scenario is executed live against a real machine, detected in real time, then investigated and written up — not built backwards from a synthetic dataset. Every write-up follows a consistent format: scenario, timeline of raw events, investigation narrative, IOCs, IOAs, MITRE ATT&CK mapping, severity, response actions, the detection rule(s) involved, and skills demonstrated. New scenarios get added over time as the lab grows.
+
+## Data Sources & Log Telemetry
+
+Where every detection in this lab actually gets its evidence from — no case is "detected by Wazuh" in the abstract, each one depends on a specific log source reaching the manager.
+
+| Source | Where it lives | What it captures | Used in |
+|---|---|---|---|
+| Suricata `eve.json` | Victim host (`/var/log/suricata/eve.json`) | Network-level NIDS alerts: port scans, SSH brute-force traffic patterns | Case 01 |
+| `auth.log` (native Wazuh decoders) | Victim host, ingested by the Wazuh agent | sshd authentication success/failure, PAM session open/close, the native sudo decoder (`5402`) for the human-readable `sudo` log line | Case 01, 02, 03 |
+| `auditd` → `audisp-syslog` → `/var/log/syslog` (custom pipeline) | Victim host, ingested by the Wazuh agent's existing `syslog`-format `localfile` | Full command-line arguments for every `sudo`-invoked process, as raw `type=EXECVE` records — built specifically because `auth.log` (and `sudo-rs`'s own logging) doesn't capture enough detail to correlate by exact command | Case 02, 03 |
+| Wazuh FIM (`syscheck`) | Victim host, Wazuh agent, realtime | File creation/deletion/modification on watched directories, independent of command-level auditing | Case 01 |
+| Wazuh manager (correlation engine) | Docker container on the Windows PC | Runs all native + custom detection rules against the sources above, generates alerts | All cases |
+| TheHive / Cortex | Separate VM (`192.168.1.49`) | Case management, alert correlation, SOAR enrichment for high-confidence Wazuh alerts | All cases, via the Wazuh → TheHive integration |
+
+**Why two different `sudo` log paths exist (`auth.log` vs. the `auditd` pipeline):** the native `auth.log` line is enough to know *that* `sudo` ran and *who* ran it (rule `5402`), but not the exact arguments — good enough for Case 01's discovery step, not precise enough to correlate on in Case 02/03. The custom `auditd`/`audisp-syslog` pipeline was built once, in Case 02, specifically to close that gap, and reused unchanged in Case 03.
 
 ## What's already working
 
