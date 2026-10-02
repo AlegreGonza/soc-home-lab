@@ -1,0 +1,26 @@
+title: Sudo Privilege Enumeration (sudo -l)
+id: 7c1e2a3d-4f5b-4a6c-8d9e-1a2b3c4d5e01
+status: test
+description: >
+  Detects a user enumerating their own sudo privileges via `sudo -l`.
+  Not malicious in isolation (also used routinely by admins) — intended
+  as a building block for correlation with subsequent sensitive actions,
+  not as a standalone high-confidence alert.
+references:
+  - internal: soc-home-lab/case-03
+author: Gonzalo Alegre
+date: 2026-09-29
+logsource:
+  category: process_creation
+  product: linux
+detection:
+  selection:
+    Image|endswith: '/sudo'
+    CommandLine|contains: '-l'
+  condition: selection
+falsepositives:
+  - Routine privilege self-check by legitimate administrators
+level: low
+tags:
+  - attack.discovery
+  - attack.t1069.001
