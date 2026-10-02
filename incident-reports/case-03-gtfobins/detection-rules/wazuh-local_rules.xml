@@ -1,0 +1,12 @@
+<!--
+  Case 03: Privilege Escalation via GTFOBins — Restricted Sudo Binary Abuse
+  Custom Wazuh rule (local_rules.xml), validated with wazuh-logtest and live traffic.
+-->
+
+<group name="local,gtfobins_shell_escape,">
+<rule id="100040" level="13">
+  <match type="pcre2">EXECVE.*sudo.*find.*exec.*bin.(sh|bash|dash)</match>
+  <description>GTFOBins-style privilege escalation: sudo-permitted binary used to spawn a shell</description>
+  <mitre><id>T1548.003</id></mitre>
+</rule>
+</group>

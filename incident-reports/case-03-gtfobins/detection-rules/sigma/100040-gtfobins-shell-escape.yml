@@ -1,0 +1,35 @@
+title: GTFOBins-style Privilege Escalation via Restricted Sudo Binary
+id: 7e2c1a4e-3f5b-4c8a-9d0e-100040abcdef
+status: experimental
+description: >
+  Detects a shell spawned from a binary a user was granted narrow sudo access to
+  (e.g. `find`), via that binary's own `-exec` functionality. The sudoers entry
+  restricts the user to running only that one binary as root, but the binary's
+  own feature set still lets it hand back a full, unrestricted root shell —
+  a textbook GTFOBins escalation.
+references:
+  - https://gtfobins.github.io/gtfobins/find/#sudo
+author: AlegreGonza
+date: 2026/10/02
+tags:
+  - attack.privilege_escalation
+  - attack.t1548.003
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    type: EXECVE
+    a0: sudo
+    a1: find
+    a3: -exec
+  shell_spawn:
+    a4|contains:
+      - /bin/sh
+      - /bin/bash
+      - /bin/dash
+  condition: selection and shell_spawn
+falsepositives:
+  - Legitimate administrative use of `find -exec` under sudo is rare but possible;
+    review the resulting shell's commands before treating as benign.
+level: critical
