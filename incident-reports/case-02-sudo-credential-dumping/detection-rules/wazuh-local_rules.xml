@@ -1,5 +1,5 @@
 <!--
-  Caso 03: Abuso de Sudo — Dumping de Credenciales por Permiso Mal Configurado
+  Caso 02: Abuso de Sudo — Dumping de Credenciales por Permiso Mal Configurado
   Reglas custom de Wazuh (local_rules.xml), validadas con wazuh-logtest y tráfico en vivo.
 -->
 
