@@ -7,7 +7,7 @@ description: >
   as a building block for correlation with subsequent sensitive actions,
   not as a standalone high-confidence alert.
 references:
-  - internal: soc-home-lab/case-03
+  - internal: soc-home-lab/case-02
 author: Gonzalo Alegre
 date: 2026-09-29
 logsource:

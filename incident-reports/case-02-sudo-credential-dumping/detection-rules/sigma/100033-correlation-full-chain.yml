@@ -7,7 +7,7 @@ description: >
   The composite pattern is high-confidence even though neither event
   alone is.
 references:
-  - internal: soc-home-lab/case-03
+  - internal: soc-home-lab/case-02
 author: Gonzalo Alegre
 date: 2026-09-29
 correlation:

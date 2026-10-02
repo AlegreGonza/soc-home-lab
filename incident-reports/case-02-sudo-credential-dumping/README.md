@@ -1,4 +1,4 @@
-# Caso 03: Abuso de Sudo — Dumping de Credenciales por Permiso Mal Configurado
+# Caso 02: Abuso de Sudo — Dumping de Credenciales por Permiso Mal Configurado
 
 ![Status](https://img.shields.io/badge/status-completed-brightgreen) ![Focus](https://img.shields.io/badge/focus-SOC%20Operations-blue) ![Platform](https://img.shields.io/badge/platform-Linux-orange) ![Telemetry](https://img.shields.io/badge/telemetry-Wazuh%20%2B%20auditd-lightgrey) ![Framework](https://img.shields.io/badge/framework-MITRE%20ATT%26CK-red)
 
