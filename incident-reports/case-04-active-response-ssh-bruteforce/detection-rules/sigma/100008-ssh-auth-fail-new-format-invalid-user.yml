@@ -1,0 +1,28 @@
+title: SSH Authentication Failure for Invalid User (OpenSSH 9.8+ sshd-session format)
+id: 9a4b2c1d-6e3f-4b8a-9c2d-100008abcdef
+status: test
+description: >
+  Detects an SSH authentication failure for an invalid/unknown user, in the
+  log format introduced by OpenSSH 9.8+ ("Connection closed by invalid user
+  X Y port Z [preauth]"), emitted by the sshd-session child process rather
+  than sshd itself. Wazuh's stock decoders only match the classic
+  "Failed password for X from Y port Z" line and never extract srcip/srcuser
+  from this format — this is the building-block rule that restores
+  visibility, feeding the correlation rule below.
+references:
+  - internal: soc-home-lab/case-04
+author: Gonzalo Alegre
+date: 2026-10-04
+logsource:
+  product: linux
+  service: sshd
+detection:
+  selection:
+    Message|startswith: 'Connection closed by invalid user'
+  condition: selection
+falsepositives:
+  - None in isolation (one failed login); only the correlated pattern (rule 100041) is high-confidence
+level: low
+tags:
+  - attack.credential_access
+  - attack.t1110.001

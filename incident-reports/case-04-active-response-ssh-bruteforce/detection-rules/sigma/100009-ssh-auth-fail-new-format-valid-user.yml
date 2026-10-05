@@ -1,0 +1,26 @@
+title: SSH Authentication Failure for Valid User (OpenSSH 9.8+ sshd-session format)
+id: 9a4b2c1d-6e3f-4b8a-9c2d-100009abcdef
+status: test
+description: >
+  Detects an SSH authentication failure for a valid, existing local user, in
+  the log format introduced by OpenSSH 9.8+ ("Connection closed by
+  authenticating user X Y port Z [preauth]"), emitted by the sshd-session
+  child process. Same visibility gap as rule 100008 for invalid users —
+  Wazuh's stock decoders never extract srcip/srcuser from this format.
+references:
+  - internal: soc-home-lab/case-04
+author: Gonzalo Alegre
+date: 2026-10-04
+logsource:
+  product: linux
+  service: sshd
+detection:
+  selection:
+    Message|startswith: 'Connection closed by authenticating user'
+  condition: selection
+falsepositives:
+  - None in isolation (one failed login); only the correlated pattern (rule 100041) is high-confidence
+level: low
+tags:
+  - attack.credential_access
+  - attack.t1110.001

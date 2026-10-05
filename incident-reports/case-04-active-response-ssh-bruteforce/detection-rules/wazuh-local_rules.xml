@@ -1,0 +1,58 @@
+<!--
+  Case 04: Active Response — Automated SSH Brute Force Containment
+  Custom Wazuh rules (local_rules.xml), validated with wazuh-logtest and live traffic.
+
+  Requires: wazuh-local_decoder.xml (sshd-session-closed-invalid / -valid)
+  installed first, so these rules' <decoded_as> references resolve.
+
+  Rules 100008/100009 are base/building-block rules (level 5) that
+  feed the group "ssh_auth_fail_new". Rule 100041 correlates 3+ hits
+  of that group from the same source IP within 30s into a single
+  high-confidence brute-force alert — calibrated against this lab's
+  observed OpenSSH PerSourcePenalties rate-limiting pacing (6 -> 4 -> 3
+  threshold recalibration; see the full case report).
+
+  Rule 100010 is the legacy (classic sshd log format) brute-force
+  rule from Case 01, kept here as reference so both are visible bound
+  to the same Active Response below. Rule 5760 (prerequisite for
+  100010) ships with Wazuh's default ruleset.
+-->
+
+<group name="local,syslog,sshd,">
+
+  <rule id="100008" level="5">
+    <decoded_as>sshd-session-closed-invalid</decoded_as>
+    <description>sshd: authentication failed for invalid user $(srcuser) from $(srcip) (new OpenSSH format)</description>
+    <group>authentication_failed,ssh_auth_fail_new,pci_dss_10.2.4,pci_dss_10.2.5,</group>
+  </rule>
+
+  <rule id="100009" level="5">
+    <decoded_as>sshd-session-closed-valid</decoded_as>
+    <description>sshd: authentication failed for user $(srcuser) from $(srcip) (new OpenSSH format)</description>
+    <group>authentication_failed,ssh_auth_fail_new,pci_dss_10.2.4,pci_dss_10.2.5,</group>
+  </rule>
+
+</group>
+
+<group name="local,syslog,sshd,">
+
+  <!-- Legacy rule from Case 01 — classic OpenSSH log format. Reference only. -->
+  <rule id="100010" level="10" frequency="6" timeframe="20" ignore="180">
+    <if_matched_sid>5760</if_matched_sid>
+    <same_source_ip />
+    <description>sshd: Possible brute force attack. 6 or more failed logins from the same source IP within 20 seconds.</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+  </rule>
+
+  <rule id="100041" level="10" frequency="3" timeframe="30" ignore="180">
+    <if_matched_group>ssh_auth_fail_new</if_matched_group>
+    <same_source_ip />
+    <description>sshd: Possible brute force attack (new OpenSSH format). 3 or more failed logins from the same source IP within 30 seconds.</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+  </rule>
+
+</group>

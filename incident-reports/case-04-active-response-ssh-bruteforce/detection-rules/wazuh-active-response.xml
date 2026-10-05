@@ -1,0 +1,36 @@
+<!--
+  Case 04: Active Response — Automated SSH Brute Force Containment
+  Active Response binding: firewall-drop bound to rules 100010 and 100041.
+
+  MUST be added to the MANAGER's ossec.conf, inside <ossec_config>.
+
+  Docker/wazuh-docker deployments: do NOT edit this via `docker cp`
+  into the running container — if ossec.conf is bind-mounted from a
+  host file (e.g. wazuh_manager.conf), the container's entrypoint
+  silently re-copies that host file over any in-container edit on
+  every restart. Edit the real host-side source file instead.
+
+  The <expect>srcip</expect> field is required — without it,
+  wazuh-execd has no documented field to extract from the alert and
+  pass to the firewall-drop script, and dispatch is silently skipped
+  (no error, no warning).
+
+  <location>local</location> means the response executes — and logs —
+  on the AGENT that generated the alert, not on the manager. Check
+  /var/ossec/logs/active-responses.log on the agent, not the manager,
+  to confirm it ran.
+-->
+
+<command>
+  <name>firewall-drop-ssh-bruteforce</name>
+  <executable>firewall-drop</executable>
+  <expect>srcip</expect>
+  <timeout_allowed>yes</timeout_allowed>
+</command>
+
+<active-response>
+  <command>firewall-drop-ssh-bruteforce</command>
+  <location>local</location>
+  <rules_id>100010,100041</rules_id>
+  <timeout>600</timeout>
+</active-response>

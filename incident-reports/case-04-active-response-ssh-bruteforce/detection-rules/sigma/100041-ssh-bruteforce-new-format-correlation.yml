@@ -1,0 +1,31 @@
+title: SSH Brute Force — New OpenSSH Format (3+ Failed Logins / 30s, Same Source IP)
+id: 9a4b2c1d-6e3f-4b8a-9c2d-100041abcdef
+status: test
+description: >
+  Correlates 3 or more SSH authentication failures (rules 100008/100009 —
+  the OpenSSH 9.8+ sshd-session log format) from the same source IP within
+  a 30-second window. Threshold recalibrated down from the legacy 6/20s
+  (rule 100010, Case 01) because OpenSSH's own PerSourcePenalties
+  connection-rate-limiting throttles a brute-force tool to roughly
+  3-4 attempts per 20-30s against this hardened configuration — a 6-hit
+  threshold would realistically never be reached.
+references:
+  - internal: soc-home-lab/case-04
+  - https://github.com/wazuh/wazuh/issues/39954
+author: Gonzalo Alegre
+date: 2026-10-04
+correlation:
+  type: event_count
+  rules:
+    - 9a4b2c1d-6e3f-4b8a-9c2d-100008abcdef  # 100008 - invalid user
+    - 9a4b2c1d-6e3f-4b8a-9c2d-100009abcdef  # 100009 - valid user
+  group-by:
+    - ComputerName
+    - SourceIp
+  timespan: 30s
+  condition:
+    gte: 3
+level: high
+tags:
+  - attack.credential_access
+  - attack.t1110.001

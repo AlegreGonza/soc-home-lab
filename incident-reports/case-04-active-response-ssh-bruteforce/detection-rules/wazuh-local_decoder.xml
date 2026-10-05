@@ -1,0 +1,36 @@
+<!--
+  Case 04: Active Response — Automated SSH Brute Force Containment
+  Local decoders for OpenSSH 9.8+ (sshd-session) log format.
+
+  OpenSSH 9.8+ split privilege-separation into sshd + sshd-session
+  processes and changed the auth-failure log format. Wazuh's stock
+  decoders (0310-ssh_decoders.xml) only match the classic
+  "Failed password for X from Y port Z" line, so srcip/srcuser are
+  never extracted for a newer OpenSSH and the brute-force correlation
+  chain (5716 -> 5760 -> 100010) silently never fires.
+
+  Install to:
+    /var/ossec/etc/decoders/local_decoder.xml
+
+  IMPORTANT: <use_own_name>true</use_own_name> is required on both —
+  without it, a child decoder's matched name is not reported via
+  <decoded_as> (wazuh-logtest still shows the parent name "sshd"),
+  and any rule relying on <decoded_as> will silently never match even
+  though the regex extraction itself works.
+-->
+
+<decoder name="sshd-session-closed-invalid">
+  <parent>sshd</parent>
+  <use_own_name>true</use_own_name>
+  <prematch>^Connection closed by invalid user </prematch>
+  <regex offset="after_prematch">^(\S+) (\S+) port (\d+)</regex>
+  <order>srcuser, srcip, srcport</order>
+</decoder>
+
+<decoder name="sshd-session-closed-valid">
+  <parent>sshd</parent>
+  <use_own_name>true</use_own_name>
+  <prematch>^Connection closed by authenticating user </prematch>
+  <regex offset="after_prematch">^(\S+) (\S+) port (\d+)</regex>
+  <order>srcuser, srcip, srcport</order>
+</decoder>

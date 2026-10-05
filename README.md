@@ -15,6 +15,7 @@ This repo is a **work in progress**. It grows one use case at a time — each ne
 | 01 | [SSH Brute Force + Data Exfiltration](incident-reports/case-01-bruteforce-exfiltration/) | T1595 · T1110.001 · T1078.003 · T1083 · T1005 · T1048.002 · T1070.004 | ✅ Completed |
 | 02 | [Sudo Abuse — Credential Dumping](incident-reports/case-02-sudo-credential-dumping/) | T1069.001 · T1548.003 · T1003.008 | ✅ Completed |
 | 03 | [Privilege Escalation — GTFOBins Abuse of a Restricted Sudo Binary](incident-reports/case-03-gtfobins/) | T1069.001 · T1548.003 · T1059.004 | ✅ Completed |
+| 04 | [Active Response — Automated SSH Brute Force Containment](incident-reports/case-04-active-response-ssh-bruteforce/) | T1110.001 | ✅ Completed |
 
 > Note: the port-scan scenario originally numbered "02" is already fully covered inside Case 01's own report (reconnaissance phase), so it doesn't get a separate entry.
 
@@ -85,7 +86,8 @@ Where every detection in this lab actually gets its evidence from — no case is
 
 - **Network + host detection**: Suricata (NIDS) and Wazuh (HIDS/SIEM), correlating alerts from both layers.
 - **File Integrity Monitoring (FIM)**: realtime watch on sensitive directories, independent of command-level auditing.
-- **Custom detection rules**: purpose-built Wazuh rules for SSH brute-force (Case 01), sudo credential dumping (Case 02), and GTFOBins-style shell escapes (Case 03), each validated with `wazuh-logtest` and live traffic.
+- **Custom detection rules**: purpose-built Wazuh rules for SSH brute-force (Case 01), sudo credential dumping (Case 02), GTFOBins-style shell escapes (Case 03), and OpenSSH 9.8+ brute-force detection (Case 04), each validated with `wazuh-logtest` and live traffic.
+- **Automated containment**: Wazuh Active Response (`firewall-drop`) bound to the SSH brute-force rules, scoped to the attacking IP with a 600-second timeout — confirmed live end-to-end, including the automatic unblock (Case 04).
 - **SOAR automation**: a Wazuh → TheHive integration that auto-promotes high-confidence alerts straight to a Case, skipping manual triage.
 - **SIEM-agnostic detection logic**: new detections are drafted first in [Sigma](https://github.com/SigmaHQ/sigma) format, then converted to native Wazuh syntax. Each case keeps its own `detection-rules/` folder alongside its report.
 
@@ -113,7 +115,12 @@ soc-home-lab/
 │   │   ├── screenshots/
 │   │   └── detection-rules/
 │   │       └── sigma/
-│   └── case-03-gtfobins/
+│   ├── case-03-gtfobins/
+│   │   ├── README.md
+│   │   ├── screenshots/
+│   │   └── detection-rules/
+│   │       └── sigma/
+│   └── case-04-active-response-ssh-bruteforce/
 │       ├── README.md
 │       ├── screenshots/
 │       └── detection-rules/
@@ -129,7 +136,6 @@ Detection rules live next to the incident they belong to, inside each case's own
 
 This lab is built incrementally rather than all at once — new attack scenarios, detection rules, and infrastructure keep getting added as the project grows. General directions being worked on:
 
-- Automated containment (Wazuh Active Response) tied to specific detection rules
 - Cortex enrichment wired into TheHive cases
 - More Sigma rules as new detections are built
 - A Windows Server + Sysmon host added to the lab
