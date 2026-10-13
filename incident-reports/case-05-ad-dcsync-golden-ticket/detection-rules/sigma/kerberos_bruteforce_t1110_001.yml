@@ -1,0 +1,42 @@
+title: Possible Kerberos Brute-Force (4+ Failed Pre-Auth, Same Account)
+id: f3a1d2e4-6b1a-4c3e-9f0a-1a2b3c4d5e6f
+status: experimental
+description: |
+  Detects 4 or more failed Kerberos pre-authentication attempts (Event ID
+  4771) against the SAME target account from the same source IP within a
+  60-second window. This is the classic signature of a dictionary or
+  targeted brute-force attack against a single Kerberos principal (e.g.
+  kerbrute bruteforce, kerbrute passwordspray with a single target).
+references:
+  - https://wazuh.com/blog/how-to-detect-active-directory-attacks-with-wazuh-part-1-of-2/
+  - https://attack.mitre.org/techniques/T1110/001/
+  - ../../README.md
+author: soc-home-lab
+date: 2026-10-11
+tags:
+  - attack.credential-access
+  - attack.t1110.001
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4771
+  condition: selection | count(TargetUserName) by IpAddress >= 4
+  timeframe: 60s
+  group-by:
+    - IpAddress
+    - TargetUserName
+falsepositives:
+  - A user who genuinely mistypes their password repeatedly in under 60s
+  - Misconfigured service accounts retrying Kerberos auth with a stale cached password
+level: high
+
+# Native mapping notes
+# ---------------------
+# Wazuh rule 100050 (level 3): base selection logic — fires on every single
+#   Event 4771 (no correlation yet).
+# Wazuh rule 100051 (level 12, frequency=4, timeframe=60): correlates 100050
+#   by same ipAddress AND same targetUserName.
+# Validated against real data: fired consistently across multiple real
+# kerbrute bruteforce/passwordspray runs (Case 04/05 engagement).

@@ -1,0 +1,58 @@
+title: Possible Golden Ticket Usage (Zeroed LogonGuid, Network Logon)
+id: 09e13cbd-4511-4890-b0df-d26e20be2c3a
+status: experimental
+description: |
+  Detects network logons (type 3) with an all-zero LogonGuid. A Golden
+  Ticket forged offline with a stolen krbtgt hash (e.g. via
+  Impacket's ticketer.py or mimikatz kerberos::golden) did not originate
+  from a real interactive logon tracked end-to-end by the DC, which can
+  leave the LogonGuid field zeroed instead of populated with the GUID of
+  a legitimate logon session.
+
+  This is a weak, single-signal heuristic — documented explicitly as such.
+  It should be correlated with other anomalies for real confidence:
+  unusually long TGT lifetime, a TGT issued for a SID/RID combination that
+  does not exist, Kerberos activity from a privileged account that has not
+  authenticated recently, or the same TGT reused across multiple source
+  hosts in a short window. Windows Event Log alone does not expose ticket
+  lifetime or reuse with enough granularity for a reliable native rule;
+  an identity-threat-detection product (e.g. Microsoft Defender for
+  Identity) is the appropriate tool for robust Golden Ticket detection.
+references:
+  - https://wazuh.com/blog/how-to-detect-active-directory-attacks-with-wazuh-part-1-of-2/
+  - https://attack.mitre.org/techniques/T1558/001/
+  - ../../README.md
+author: soc-home-lab
+date: 2026-10-12
+tags:
+  - attack.credential-access
+  - attack.persistence
+  - attack.t1558.001
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 3
+    LogonGuid: '{00000000-0000-0000-0000-000000000000}'
+  condition: selection
+falsepositives:
+  - Certain legitimate service/batch logon configurations can also present
+    a zeroed LogonGuid — this rule alone is not sufficient evidence of an
+    attack and must be triaged, not auto-escalated
+level: medium
+
+# Native mapping notes
+# ---------------------
+# Wazuh rule 100063 (level 12): selection logic above, unchanged.
+# Known limitation, carried over from this file's description: treat as an
+# indicator requiring manual correlation, not a standalone high-confidence
+# detection. Additional work items for next iteration:
+#   - Monitor krbtgt account modification events (4738/5136) as a signal of
+#     an attacker re-establishing Golden Ticket capability after remediation.
+#   - Alert on Kerberos activity from privileged accounts with no recent
+#     authentication history.
+#   - Evaluate correlating 4768/4769 ticket lifetime against the domain's
+#     configured maximum ticket lifetime (default 10 hours) to flag
+#     abnormally long-lived TGTs, the classic Golden Ticket tell.

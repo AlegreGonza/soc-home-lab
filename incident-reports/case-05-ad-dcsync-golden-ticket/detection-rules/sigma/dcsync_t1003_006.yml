@@ -1,0 +1,58 @@
+title: Possible DCSync Attack (Directory Replication Rights Abuse)
+id: 14c50d50-b933-4b68-a1f7-10b249ec770a
+status: experimental
+description: |
+  Detects use of the AD-DS directory replication extended rights
+  (DS-Replication-Get-Changes / DS-Replication-Get-Changes-All) by a
+  principal that is not a Domain Controller machine account. These
+  rights are what secretsdump.py (-just-dc) and mimikatz
+  (lsadump::dcsync) abuse to pull account secrets — including krbtgt —
+  directly from the DC via the Directory Replication Service (DRS)
+  protocol, without touching lsass.exe or ntds.dit on disk.
+references:
+  - https://wazuh.com/blog/how-to-detect-active-directory-attacks-with-wazuh-part-1-of-2/
+  - https://attack.mitre.org/techniques/T1003/006/
+  - ../../README.md
+author: soc-home-lab
+date: 2026-10-12
+tags:
+  - attack.credential-access
+  - attack.t1003.006
+logsource:
+  product: windows
+  service: security
+  definition: 'Requires a SACL audit rule configured on the domain object for the
+    DS-Replication-Get-Changes and DS-Replication-Get-Changes-All extended
+    rights (not enabled by Windows default auditing — see "Native mapping
+    notes" below).'
+detection:
+  selection:
+    EventID: 4662
+    Properties|contains:
+      - '{1131f6aa-9c07-11d1-f79f-00c04fc2dcd2}'
+      - '{1131f6ad-9c07-11d1-f79f-00c04fc2dcd2}'
+  filter_dc_machine_account:
+    SubjectUserName|endswith: '$'
+  condition: selection and not filter_dc_machine_account
+falsepositives:
+  - Legitimate Domain Controllers replicating with each other (excluded via
+    filter_dc_machine_account — DC machine accounts end in "$")
+  - Authorized directory-synchronization services (e.g. Azure AD Connect) —
+    add their service account to the exclusion filter
+level: high
+
+# Native mapping notes
+# ---------------------
+# Wazuh rule 100060 (level 12): selection logic above.
+# Wazuh rule 100061 (level 0): filter_dc_machine_account logic above,
+#   implemented as <if_sid>100060</if_sid> + regex \$$ on subjectUserName.
+# Prerequisite (not covered by this rule, must be configured separately):
+#   1. auditpol /set /subcategory:"Directory Service Access" /success:enable
+#   2. A SACL audit entry on the domain object (DC=<domain>,DC=<tld>) for
+#      "Everyone", Success, scoped to the two extended rights above
+#      (configured via ADSI Edit — Properties > Security > Advanced > Auditing).
+# Without step 2, Event ID 4662 is never generated and this rule has no
+# data to match against, regardless of how correctly it is written.
+# Validated conceptually against real secretsdump.py -just-dc-user krbtgt
+# traffic (Case 05); NOT yet validated against a live 4662 event, since the
+# SACL prerequisite was not configured at the time of that engagement.

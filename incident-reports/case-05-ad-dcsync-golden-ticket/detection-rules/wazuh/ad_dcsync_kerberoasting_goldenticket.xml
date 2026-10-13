@@ -1,0 +1,60 @@
+<!--
+  DCSync / Kerberoasting / Golden Ticket detection
+  Case 05 — Active Directory Total Compromise
+  Source Sigma: detection-rules/sigma/case-05/dcsync_t1003_006.yml
+                detection-rules/sigma/case-05/kerberoasting_t1558_003.yml
+                detection-rules/sigma/case-05/golden_ticket_t1558_001.yml
+
+  Status: designed, loaded in Wazuh, and conceptually validated against this
+  engagement's real attacker behavior. Live confirmation against a real
+  Event 4662/4769/4624 is the next step on the detection roadmap (see
+  incident-reports/case-05-ad-dcsync-golden-ticket.md). 100060/100061
+  specifically require a SACL audit rule on the domain object
+  (DS-Replication-Get-Changes[-All]) that is not enabled by Windows
+  default auditing.
+-->
+<group name="active_directory,windows,">
+
+  <rule id="100060" level="12">
+    <if_sid>60103</if_sid>
+    <field name="win.system.eventID">^4662$</field>
+    <field name="win.eventdata.properties" type="pcre2">1131f6aa-9c07-11d1-f79f-00c04fc2dcd2|1131f6ad-9c07-11d1-f79f-00c04fc2dcd2</field>
+    <description>Possible DCSync attack: directory replication rights used by $(win.eventdata.subjectUserName).</description>
+    <mitre>
+      <id>T1003.006</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+
+  <rule id="100061" level="0">
+    <if_sid>100060</if_sid>
+    <field name="win.eventdata.subjectUserName" type="pcre2">\$$</field>
+    <description>DCSync rights used by a machine account (legitimate Domain Controller) - excluded.</description>
+    <options>no_full_log</options>
+  </rule>
+
+  <rule id="100062" level="12">
+    <if_sid>60103</if_sid>
+    <field name="win.system.eventID">^4769$</field>
+    <field name="win.eventdata.ticketOptions">0x40810000</field>
+    <field name="win.eventdata.ticketEncryptionType">0x17</field>
+    <description>Possible Kerberoasting: TGS requested with RC4 encryption for $(win.eventdata.serviceName) by $(win.eventdata.targetUserName).</description>
+    <mitre>
+      <id>T1558.003</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+
+  <rule id="100063" level="12">
+    <if_sid>60103</if_sid>
+    <field name="win.system.eventID">^4624$</field>
+    <field name="win.eventdata.logonType">^3$</field>
+    <field name="win.eventdata.logonGuid">^\{00000000-0000-0000-0000-000000000000\}$</field>
+    <description>Possible Golden Ticket usage: network logon with zeroed LogonGuid for $(win.eventdata.targetUserName).</description>
+    <mitre>
+      <id>T1558.001</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+
+</group>

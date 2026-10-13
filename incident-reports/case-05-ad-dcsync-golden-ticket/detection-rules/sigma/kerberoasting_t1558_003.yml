@@ -1,0 +1,40 @@
+title: Possible Kerberoasting (TGS Requested With RC4 Encryption)
+id: b77b14a5-bbc0-4e44-aceb-531387f749bd
+status: experimental
+description: |
+  Detects Kerberos service-ticket (TGS) requests using the legacy RC4
+  encryption type and the ticket options commonly set by Kerberoasting
+  tools (GetUserSPNs.py, Rubeus kerberoast). Service accounts with a
+  registered SPN return their password hash encrypted with the account's
+  own key, which can be cracked offline once requested with weak RC4
+  encryption — no interaction with the target service is required.
+references:
+  - https://wazuh.com/blog/how-to-detect-active-directory-attacks-with-wazuh-part-1-of-2/
+  - https://attack.mitre.org/techniques/T1558/003/
+  - ../../README.md
+author: soc-home-lab
+date: 2026-10-12
+tags:
+  - attack.credential-access
+  - attack.t1558.003
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4769
+    TicketOptions: '0x40810000'
+    TicketEncryptionType: '0x17'
+  condition: selection
+falsepositives:
+  - Legacy applications or devices that do not support AES and request RC4
+    tickets as part of normal operation — baseline for a few days and
+    whitelist known service accounts before enforcing in production
+level: high
+
+# Native mapping notes
+# ---------------------
+# Wazuh rule 100062 (level 12): selection logic above, unchanged.
+# Pending validation in the lab: run GetUserSPNs.py against svc_sql
+# (identified as a Kerberoastable candidate in Case 04/05 enumeration)
+# and confirm the resulting 4769 event matches this rule exactly.

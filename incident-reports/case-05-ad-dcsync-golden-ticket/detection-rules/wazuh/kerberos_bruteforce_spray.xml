@@ -1,0 +1,46 @@
+<!--
+  Kerberos Brute-Force / Password Spray detection
+  Case 05 — Active Directory Total Compromise
+  Source Sigma: detection-rules/sigma/case-05/kerberos_bruteforce_t1110_001.yml
+                detection-rules/sigma/case-05/kerberos_password_spray_t1110_003.yml
+
+  Status: 100050, 100051 and 100052 validated against real production data
+  (not just wazuh-logtest, which proved unreliable for this event type).
+  100051 fired consistently against real Kerbrute runs; 100052 fired on
+  2026-10-11 19:58:31 against a real spray (10+ failures, different
+  accounts, same source).
+-->
+<group name="kerberos,windows,">
+
+  <rule id="100050" level="3">
+    <if_sid>60104</if_sid>
+    <field name="win.system.eventID">^4771$</field>
+    <description>Kerberos pre-authentication failed (possible bad password attempt).</description>
+    <mitre>
+      <id>T1110.003</id>
+    </mitre>
+  </rule>
+
+  <rule id="100051" level="12" frequency="4" timeframe="60">
+    <if_matched_sid>100050</if_matched_sid>
+    <same_field>win.eventdata.ipAddress</same_field>
+    <same_field>win.eventdata.targetUserName</same_field>
+    <description>Possible Kerberos Brute-Force: 4+ failed pre-auth attempts against the SAME account from the same source in 60s.</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>kerberos_bruteforce_confirmed</group>
+  </rule>
+
+  <rule id="100052" level="12" frequency="10" timeframe="60">
+    <if_matched_sid>100050</if_matched_sid>
+    <same_field>win.eventdata.ipAddress</same_field>
+    <different_field>win.eventdata.targetUserName</different_field>
+    <description>Possible Kerberos Password Spray: 10+ failed pre-auth attempts against DIFFERENT accounts from the same source in 60s.</description>
+    <mitre>
+      <id>T1110.003</id>
+    </mitre>
+    <ignore>60</ignore>
+  </rule>
+
+</group>
