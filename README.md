@@ -17,6 +17,7 @@ This repo is a **work in progress**. It grows one use case at a time — each ne
 | 03 | [Privilege Escalation — GTFOBins Abuse of a Restricted Sudo Binary](incident-reports/case-03-gtfobins/) | T1069.001 · T1548.003 · T1059.004 | ✅ Completed |
 | 04 | [Active Response — Automated SSH Brute Force Containment](incident-reports/case-04-active-response-ssh-bruteforce/) | T1110.001 | ✅ Completed |
 | 05 | [Active Directory Total Compromise — Password Spray → NTDS Dump / DCSync → Golden Ticket](incident-reports/case-05-ad-dcsync-golden-ticket/) | T1087.002 · T1110.001 · T1110.003 · T1021.002 · T1552.001 · T1078.002 · T1003.003 · T1003.006 · T1558.001 | ✅ Completed |
+| 06 | [LLMNR / NBT-NS / mDNS Poisoning — NTLMv2 Capture](incident-reports/case-06-llmnr-nbtns-mdns-poisoning/) | T1557.001 · T1187 · T1040 | ✅ Completed |
 
 ---
 
