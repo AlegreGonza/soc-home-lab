@@ -18,8 +18,6 @@ This repo is a **work in progress**. It grows one use case at a time — each ne
 | 04 | [Active Response — Automated SSH Brute Force Containment](incident-reports/case-04-active-response-ssh-bruteforce/) | T1110.001 | ✅ Completed |
 | 05 | [Active Directory Total Compromise — Password Spray → NTDS Dump / DCSync → Golden Ticket](incident-reports/case-05-ad-dcsync-golden-ticket/) | T1087.002 · T1110.001 · T1110.003 · T1021.002 · T1552.001 · T1078.002 · T1003.003 · T1003.006 · T1558.001 | ✅ Completed |
 
-> Note: the port-scan scenario originally numbered "02" is already fully covered inside Case 01's own report (reconnaissance phase), so it doesn't get a separate entry.
-
 ---
 
 ## Why this project exists
