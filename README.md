@@ -136,12 +136,15 @@ soc-home-lab/
 │   │   ├── screenshots/
 │   │   └── detection-rules/
 │   │       └── sigma/
-│   └── case-05-ad-dcsync-golden-ticket/
+│   ├── case-05-ad-dcsync-golden-ticket/
+│   │   ├── README.md
+│   │   ├── screenshots/
+│   │   └── detection-rules/
+│   │       ├── sigma/                     ← SIEM-agnostic rules (Sigma YAML)
+│   │       └── wazuh/                     ← native Wazuh XML rules
+│   └── case-06-llmnr-nbtns-mdns-poisoning/
 │       ├── README.md
-│       ├── screenshots/
-│       └── detection-rules/
-│           ├── sigma/                     ← SIEM-agnostic rules (Sigma YAML)
-│           └── wazuh/                     ← native Wazuh XML rules
+│       └── screenshots/
 ├── architecture/                          ← topology diagrams
 ├── playbooks/                             ← SANS PICERL response playbooks, one per case
 └── notes/                                 ← lessons learned, infra troubleshooting logs
@@ -157,6 +160,7 @@ This lab is built incrementally rather than all at once — new attack scenarios
 - More Sigma rules as new detections are built
 - Configure SACL auditing on the AD domain object to confirm Case 05's DCSync detection (100060/100061) against live Event 4662 data
 - Run a formal Kerberoasting pass (`GetUserSPNs.py`) to confirm Case 05's rule 100062 against live Event 4769 data
+- Deploy a Suricata NIDS rule to detect Case 06's LLMNR/NBT-NS poisoned responses, validated by replaying the captured pcap
 - Vulnerability scanning (OpenVAS/Nessus Essentials) against the lab
 
 ## Disclaimer
